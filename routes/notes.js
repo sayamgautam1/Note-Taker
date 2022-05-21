@@ -1,4 +1,5 @@
 const notes = require("express").Router();
+const { json } = require("body-parser");
 const { v4: uuidv4 } = require("uuid");
 const {
   readFromFile,
@@ -13,7 +14,6 @@ notes.get("/", (req, res) => {
 });
 
 // POST route for the saved note
-
 notes.post("/", (req, res) => {
   console.log(req.body);
   //{ title: 'asdas', text: 'adads' }
@@ -22,7 +22,7 @@ notes.post("/", (req, res) => {
     const newNote = {
       title,
       text,
-      nodeID: uuidv4(),
+      id: uuidv4(),
     };
 
     readAndAppend(newNote, "./db/db.json");
@@ -30,6 +30,36 @@ notes.post("/", (req, res) => {
   } else {
     res.error("Error in adding tip");
   }
+});
+
+// post route to the specific note
+notes.get("/:id", (req, res) => {
+  const noteID = req.params.id;
+  readFromFile("./db/db.json")
+    .then((data) => JSON.parse(data))
+    .then((json) => {
+      const result = json.filter((note) => note.id === noteID);
+      return result.length > 0
+        ? res.json(result)
+        : res.json("no note with that ID");
+    });
+});
+
+// delete route for a specific note
+notes.delete("/:id", (req, res) => {
+  const noteId = req.params.id;
+  readFromFile("./db/db.json")
+    .then((data) => JSON.parse(data))
+    .then((json) => {
+      // Make a new array of all notes except the one with the ID provided in the URL
+      const result = json.filter((note) => note.id !== noteId);
+
+      // Save that array to the filesystem
+      writeToFile("./db/db.json", result);
+
+      // Respond to the DELETE request
+      res.json(`Item ${noteId} has been deleted 🗑️`);
+    });
 });
 
 module.exports = notes;
